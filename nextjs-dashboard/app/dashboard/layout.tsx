@@ -1,6 +1,10 @@
 import SideNav from '@/app/ui/dashboard/sidenav';
 export const experimental_ppr = true; 
+import { Metadata } from 'next';
 
+export const metadata:Metadata = {
+  title: 'dashboard'
+}
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
