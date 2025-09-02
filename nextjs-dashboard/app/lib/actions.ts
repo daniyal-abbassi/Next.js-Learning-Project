@@ -30,15 +30,25 @@ export type State = {
     status?: string[];
   };
   message?: string | null;
-}
+};
 
-export async function updateInvoice(id: string, formData: FormData) {
-  const { customerId, amount, status } = UpdateInvoice.parse({
+export async function updateInvoice(
+  id: string,
+  prevState: State,
+  formData: FormData
+) {
+  const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get("customerId"),
     amount: formData.get("amount"),
     status: formData.get("status"),
   });
-
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Missing Fields. Failed to Update Invoice.",
+    };
+  }
+  const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100;
 
   try {
@@ -48,26 +58,28 @@ export async function updateInvoice(id: string, formData: FormData) {
   WHERE id = ${id}
   `;
   } catch (error) {
-    console.log("error updating invoice: ", error);
+    return {
+      message: "Database Error: Failed to Update Invoice.",
+    };
   }
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
-export async function createInvoice(prevState: State,formData: FormData) {
+export async function createInvoice(prevState: State, formData: FormData) {
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get("customerId"),
     amount: formData.get("amount"),
     status: formData.get("status"),
   });
-  console.log('this is validateFields: ',validatedFields.error)
-  if(!validatedFields.success) {
+
+  if (!validatedFields.success) {
     return {
       errors: validatedFields.error.flatten().fieldErrors,
-      message: 'Missing Fields. Failed to Create Invoice.'
-    }
+      message: "Missing Fields. Failed to Create Invoice.",
+    };
   }
-  const {customerId, amount, status}  = validatedFields.data;
+  const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100;
   const date = new Date().toISOString().split("T")[0];
   try {
@@ -77,15 +89,14 @@ export async function createInvoice(prevState: State,formData: FormData) {
     `;
   } catch (error) {
     return {
-      message: 'Database Error: Failed to Create Invoice.'
-    }
+      message: "Database Error: Failed to Create Invoice.",
+    };
   }
   revalidatePath("/dashboard/invoices");
   redirect("/dashboard/invoices");
 }
 
 export async function deleteInvoice(id: string) {
-  throw new Error("this is shity error");
   try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
     revalidatePath("dashboard/invoices");
